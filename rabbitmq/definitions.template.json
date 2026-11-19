@@ -1,0 +1,40 @@
+{
+  "users": [
+    { "name": "__RABBITMQ_USER__", "password": "__RABBITMQ_PASS__", "tags": ["administrator"] }
+  ],
+  "vhosts": [
+    { "name": "/" }
+  ],
+  "permissions": [
+    { "user": "__RABBITMQ_USER__", "vhost": "/", "configure": ".*", "write": ".*", "read": ".*" }
+  ],
+  "queues": [
+    {
+      "name": "sensor.readings.dlq",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "sensor.readings",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "",
+        "x-dead-letter-routing-key": "sensor.readings.dlq"
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "source": "amq.topic",
+      "vhost": "/",
+      "destination": "sensor.readings",
+      "destination_type": "queue",
+      "routing_key": "invernadero.*.lecturas",
+      "arguments": {}
+    }
+  ]
+}
