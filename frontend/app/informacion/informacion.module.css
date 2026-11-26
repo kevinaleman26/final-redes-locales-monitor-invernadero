@@ -1,0 +1,36 @@
+.seccion { margin-bottom: 16px; display: grid; gap: 12px; }
+.seccion p { margin: 0; }
+
+.datos { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0; }
+.datos dt { color: var(--text-secondary); }
+.datos dd { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; overflow-wrap: anywhere; }
+.tag { background: var(--leaf-soft); color: var(--leaf-dark); padding: 1px 8px; border-radius: 999px; }
+
+.formulario { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.formulario label { display: grid; gap: 4px; align-content: start; }
+.formulario label > span:first-child { color: var(--text-secondary); font-size: 12px; }
+.formulario input {
+  background: #fff; color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px;
+  padding: 7px 9px; font: inherit; min-width: 0; width: 100%;
+}
+.formulario input:focus { outline: 2px solid var(--leaf); outline-offset: 0; border-color: var(--leaf); }
+.clave { display: flex; gap: 6px; }
+.clave button {
+  background: var(--leaf-soft); color: var(--leaf-dark); border: 1px solid var(--leaf); border-radius: 6px;
+  padding: 0 10px; font: inherit; cursor: pointer;
+}
+
+.qrs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.qr { margin: 0; display: grid; justify-items: center; gap: 8px; text-align: center; padding: 12px; border: 1px dashed var(--border); border-radius: 10px; }
+.qr img { width: 240px; max-width: 100%; height: auto; border-radius: 8px; }
+.vacio {
+  width: 240px; max-width: 100%; aspect-ratio: 1; border-radius: 8px; background: var(--grid);
+  display: grid; place-items: center; padding: 16px; color: var(--text-muted); font-size: 13px;
+}
+.boton {
+  background: var(--leaf); color: #fff; text-decoration: none; padding: 8px 14px; border-radius: 6px;
+  border: 1px solid var(--leaf-dark); font-weight: 600;
+}
+.boton:hover { background: var(--leaf-dark); }
+.alerta { color: #b3261e; font-size: 12px; }
+.aviso { color: #7a4f00; background: #f6e3c0; border: 1px solid #c98a1a; border-radius: 6px; padding: 8px 10px; font-size: 13px; }

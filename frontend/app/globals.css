@@ -1,35 +1,23 @@
+/* Tema "jardín botánico": fondo chocolate tierra claro y acentos verdes.
+   Se usa igual en modo claro y oscuro del sistema. */
 :root {
   color-scheme: light;
-  --page: #f4f4f2;
-  --surface-1: #fcfcfb;
-  --border: #e3e2de;
-  --grid: #ecebe7;
-  --text-primary: #0b0b0b;
-  --text-secondary: #52514e;
-  --text-muted: #7a7974;
-  --series-temp: #2a78d6;
-  --series-hum: #eb6834;
-  --status-good: #0b7a3e;
-  --status-off: #8a8984;
-  --accent: #2a78d6;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --page: #111110;
-    --surface-1: #1a1a19;
-    --border: #2e2e2c;
-    --grid: #262624;
-    --text-primary: #f0efec;
-    --text-secondary: #c3c2b7;
-    --text-muted: #8f8e88;
-    --series-temp: #3987e5;
-    --series-hum: #d95926;
-    --status-good: #0ca30c;
-    --status-off: #6d6c67;
-    --accent: #3987e5;
-  }
+  --page: #d9c2a3;          /* chocolate tierra claro */
+  --surface-1: #f6eddc;     /* crema, para tarjetas */
+  --border: #c2a37f;
+  --grid: #e6d5bb;
+  --text-primary: #2b1d12;  /* chocolate oscuro */
+  --text-secondary: #5a4330;
+  --text-muted: #7a6148;
+  --leaf: #2e7d32;          /* verde hoja */
+  --leaf-dark: #1f5a26;
+  --leaf-soft: #dcebc9;
+  --series-temp: #2e7d32;
+  --series-hum: #00897b;
+  --series-soil: #8d5a2b;   /* tierra */
+  --status-good: #2e7d32;
+  --status-off: #9c8466;
+  --accent: #2e7d32;
 }
 
 * { box-sizing: border-box; }
@@ -45,13 +33,13 @@ body {
 main { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
 
 header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-h1 { font-size: 22px; margin: 0; }
+h1 { font-size: 22px; margin: 0; color: var(--leaf-dark); }
 h2 { font-size: 15px; margin: 0 0 12px; font-weight: 600; }
 .muted { color: var(--text-muted); font-size: 12px; }
-.error { color: #e34948; font-size: 13px; }
+.error { color: #b3261e; font-size: 13px; }
 
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
-.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.card { background: var(--surface-1); border: 1px solid var(--border); border-top: 3px solid var(--leaf); border-radius: 10px; padding: 16px; }
 .kpi .label { color: var(--text-secondary); font-size: 12px; }
 .kpi .value { font-size: 26px; font-weight: 600; margin-top: 4px; font-variant-numeric: tabular-nums; }
 .kpi .sub { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
@@ -66,7 +54,7 @@ table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nu
 th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
 th { color: var(--text-secondary); font-weight: 500; font-size: 12px; }
 tr.clickable { cursor: pointer; }
-tr.clickable:hover, tr.selected { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+tr.clickable:hover, tr.selected { background: var(--leaf-soft); }
 td.num, th.num { text-align: right; }
 
 .status { display: inline-flex; align-items: center; gap: 6px; }
@@ -80,5 +68,7 @@ td.num, th.num { text-align: right; }
 
 .topnav { max-width: 1200px; margin: 0 auto; padding: 14px 16px 0; display: flex; gap: 4px; }
 .topnav a { color: var(--text-secondary); text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 13px; }
-.topnav a:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
-.topnav a.active { color: var(--text-primary); background: var(--surface-1); border: 1px solid var(--border); }
+.topnav a:hover { background: var(--leaf-soft); color: var(--leaf-dark); }
+.topnav a.active { color: #fff; background: var(--leaf); border: 1px solid var(--leaf-dark); }
+
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }

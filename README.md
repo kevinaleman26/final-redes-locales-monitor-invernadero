@@ -131,6 +131,7 @@ uv run test-comunication.py --device-id planta-sin-tierra --no-soil   # sin sens
 |-----|-----|----------------------------|
 | Dashboard | http://localhost:3100 | — |
 | Plantas animadas | http://localhost:3100/plantas | — |
+| Información (configurar ESP32 con QR) | http://localhost:3100/informacion | — |
 | API (Swagger) | http://localhost:8000/docs | — |
 | pgAdmin | http://localhost:5050 | Entra directo. Al abrir el servidor **Invernadero** pide la contraseña de Postgres: `invernadero` |
 | RabbitMQ (consola) | http://localhost:15672 | `invernadero` / `invernadero` |
@@ -203,6 +204,7 @@ void loop() {
 | Método | Ruta | Descripción |
 |--------|------|-------------|
 | GET | `/health` | Estado del servicio y conexión a la BD |
+| GET | `/api/config/dispositivo` | Datos para configurar los ESP32: servidor MQTT (`MQTT_PUBLIC_HOST`), puerto y portal |
 | GET | `/api/stats` | Totales, dispositivos en línea, promedios de la última hora |
 | GET | `/api/devices` | Lista de dispositivos con su última lectura y estado (`online` = reportó en los últimos 30 s) |
 | GET | `/api/devices/{id}` | Detalle de un dispositivo |
@@ -227,14 +229,24 @@ El sensor de aire se considera caído cuando llega temperatura 0 y humedad 0 (es
 
 ## Firmware ESP32
 
-[firmware/esp32-invernadero/](firmware/esp32-invernadero/) es el firmware de un dispositivo real (Arduino, `PubSubClient` + `DHT sensor library` de Adafruit). Publica cada 10 s en `invernadero/<DEVICE_ID>/lecturas`:
+[firmware/esp32-invernadero/](firmware/esp32-invernadero/) es el firmware de un dispositivo real (Arduino, `PubSubClient` + `DHT sensor library` de Adafruit). Publica cada 5 s en `invernadero/<device_id>/lecturas`:
 
 | Sensor | Conexión |
 |--------|----------|
 | DHT11 (temperatura y humedad del aire) | VCC → 3V3, GND → GND, DATA → GPIO 4 |
-| Humedad de tierra capacitivo (analógico) | VCC → 3V3, GND → GND, AOUT → GPIO 32 |
 
-Copia `secrets.example.h` como `secrets.h` (está en `.gitignore`) y pon tu WiFi de 2,4 GHz y la IP del servidor en la red local. Calibra el sensor de tierra con `TIERRA_SECO` y `TIERRA_MOJADO`, usando el valor crudo que muestra el monitor serie con el sensor al aire y en agua.
+Copia `secrets.example.h` como `secrets.h` (está en `.gitignore`). Ahí solo van el servidor MQTT por defecto y sus credenciales; el WiFi y el nombre de la planta se configuran desde el móvil:
+
+1. La primera vez (o si no logra conectarse al WiFi guardado) la placa crea la red **`Invernadero-Config`**, con contraseña **`invernadero`**. Es la misma en todas las placas, así que configúralas de una en una; la página del portal muestra el **id único** de la placa (sale de su MAC) para saber cuál es.
+2. Conéctate desde el móvil: se abre sola una página (si no, entra a http://192.168.4.1). Pulsa **Configure WiFi**, elige tu red de 2,4 GHz y escribe la contraseña.
+3. En la misma página puedes cambiar el **servidor MQTT** (IP o nombre `.local`), su puerto y el **nombre de la planta**. Todo queda guardado en la ESP32. Mientras no le pongas nombre, cada placa se llama `planta-<id único>`, así dos placas con el mismo firmware nunca mezclan sus datos.
+4. Para volver a configurarla (otro router, otro servidor), **mantén pulsado BOOT 3 segundos** con la placa encendida: el LED parpadea rápido, se borra la configuración y vuelve a abrir el portal.
+
+**Con códigos QR:** la página http://localhost:3100/informacion muestra estos datos y genera dos QR. El primero (siempre el mismo) une el móvil a `Invernadero-Config`; el segundo abre `http://192.168.4.1/wifisave?...` con tu WiFi, el servidor y el nombre de la planta, y la placa los guarda sin escribir nada a mano. La contraseña del WiFi solo se usa en el navegador para crear el QR (no se envía al servidor). El servidor que muestra sale de `MQTT_PUBLIC_HOST` en `.env`.
+
+Si nadie usa el portal en 5 minutos, la placa se reinicia y vuelve a intentar el WiFi guardado. Para el servidor, lo más cómodo es su nombre mDNS terminado en `.local` (en macOS: `scutil --get LocalHostName`; en una Raspberry Pi, normalmente `raspberrypi.local`): el ESP32 busca la IP antes de cada conexión, así que sigue funcionando aunque el router se la cambie.
+
+Librerías: `PubSubClient`, `DHT sensor library` (Adafruit) y `WiFiManager` (tzapu).
 
 ```bash
 arduino-cli compile --fqbn esp32:esp32:esp32 -u -p /dev/cu.usbserial-0001 firmware/esp32-invernadero
@@ -299,11 +311,12 @@ docker compose down -v
 │       ├── schemas.py              # validación del mensaje
 │       ├── messaging.py            # declaración de colas
 │       └── config.py
-├── firmware/esp32-invernadero/     # firmware del ESP32 (DHT11 + humedad de tierra)
+├── firmware/esp32-invernadero/     # firmware del ESP32 (DHT11)
 ├── frontend/                       # Next.js (dashboard)
 │   └── app/
 │       ├── page.tsx                # dashboard
 │       ├── plantas/                # página de plantas animadas
+│       ├── informacion/            # datos y QR para configurar los ESP32
 │       ├── Nav.tsx                 # navegación entre páginas
 │       └── api/[...path]/route.ts  # proxy hacia el backend
 └── docs/                           # documentación en PDF

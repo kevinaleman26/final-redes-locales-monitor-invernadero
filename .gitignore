@@ -7,3 +7,4 @@ node_modules/
 
 # Credenciales del firmware ESP32
 firmware/**/secrets.h
+*.tsbuildinfo

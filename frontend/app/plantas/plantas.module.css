@@ -16,8 +16,8 @@
 .falla { color: var(--text-muted); }
 
 .chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; min-height: 22px; margin-bottom: 8px; }
-.chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-secondary); }
-.aviso { border-color: #d9a400; color: #8a6800; }
+.chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--leaf); background: var(--leaf-soft); color: var(--leaf-dark); }
+.aviso { border-color: #c98a1a; background: #f6e3c0; color: #7a4f00; }
 
 .leyenda { display: grid; gap: 4px; }
 .toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }

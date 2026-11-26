@@ -26,6 +26,7 @@ type Device = {
   last_seen: string;
   last_temperature: number | null;
   last_humidity: number | null;
+  last_soil_moisture: number | null;
   readings_count: number;
   online: boolean;
 };
@@ -35,6 +36,7 @@ type Reading = {
   device_id: string;
   temperature: number;
   humidity: number;
+  soil_moisture: number | null;
   measured_at: string;
   stored_at: string;
 };
@@ -91,7 +93,12 @@ export default function Dashboard() {
         .filter((r) => !selected || r.device_id === selected)
         .slice()
         .reverse()
-        .map((r) => ({ t: new Date(r.measured_at).getTime(), temperature: r.temperature, humidity: r.humidity })),
+        .map((r) => ({
+          t: new Date(r.measured_at).getTime(),
+          temperature: r.temperature,
+          humidity: r.humidity,
+          soil_moisture: r.soil_moisture,
+        })),
     [readings, selected],
   );
 
@@ -131,6 +138,7 @@ export default function Dashboard() {
       <section className="grid-2">
         <ChartCard title="Temperatura" unit="°C" dataKey="temperature" color="var(--series-temp)" data={series} />
         <ChartCard title="Humedad relativa" unit="%" dataKey="humidity" color="var(--series-hum)" data={series} />
+        <ChartCard title="Humedad de tierra" unit="%" dataKey="soil_moisture" color="var(--series-soil)" data={series} domain={[0, 100]} />
       </section>
 
       <section className="card" style={{ marginBottom: 16 }}>
@@ -142,14 +150,15 @@ export default function Dashboard() {
                 <th>ID</th>
                 <th>Estado</th>
                 <th className="num">Temp. (°C)</th>
-                <th className="num">Humedad (%)</th>
+                <th className="num">Humedad aire (%)</th>
+                <th className="num">Humedad tierra (%)</th>
                 <th className="num">Lecturas</th>
                 <th>Última lectura</th>
               </tr>
             </thead>
             <tbody>
               {devices.length === 0 && (
-                <tr><td colSpan={6} className="muted">Sin dispositivos todavía. Envía datos con test-comunication.py o desde un dispositivo.</td></tr>
+                <tr><td colSpan={7} className="muted">Sin dispositivos todavía. Envía datos con test-comunication.py o desde un dispositivo.</td></tr>
               )}
               {devices.map((d) => (
                 <tr key={d.id} className={`clickable ${d.id === selected ? "selected" : ""}`} onClick={() => setSelected(d.id)}>
@@ -162,6 +171,7 @@ export default function Dashboard() {
                   </td>
                   <td className="num">{fmt(d.last_temperature, 2)}</td>
                   <td className="num">{fmt(d.last_humidity, 2)}</td>
+                  <td className="num">{fmt(d.last_soil_moisture, 1)}</td>
                   <td className="num">{d.readings_count.toLocaleString("es")}</td>
                   <td>{time(d.last_seen)}</td>
                 </tr>
@@ -180,7 +190,8 @@ export default function Dashboard() {
                 <th>#</th>
                 <th>Dispositivo</th>
                 <th className="num">Temp. (°C)</th>
-                <th className="num">Humedad (%)</th>
+                <th className="num">Humedad aire (%)</th>
+                <th className="num">Humedad tierra (%)</th>
                 <th>Medido</th>
                 <th>Guardado</th>
               </tr>
@@ -192,6 +203,7 @@ export default function Dashboard() {
                   <td>{r.device_id}</td>
                   <td className="num">{fmt(r.temperature, 2)}</td>
                   <td className="num">{fmt(r.humidity, 2)}</td>
+                  <td className="num">{fmt(r.soil_moisture, 1)}</td>
                   <td>{time(r.measured_at)}</td>
                   <td>{time(r.stored_at)}</td>
                 </tr>
@@ -220,14 +232,17 @@ function ChartCard({
   dataKey,
   color,
   data,
+  domain = ["auto", "auto"],
 }: {
   title: string;
   unit: string;
-  dataKey: "temperature" | "humidity";
+  dataKey: "temperature" | "humidity" | "soil_moisture";
   color: string;
-  data: { t: number; temperature: number; humidity: number }[];
+  data: { t: number; temperature: number; humidity: number; soil_moisture: number | null }[];
+  domain?: [number | "auto", number | "auto"];
 }) {
   const last = data.at(-1)?.[dataKey];
+  const sinDatos = data.every((p) => p[dataKey] == null);
   return (
     <div className="card">
       <h2>
@@ -235,7 +250,7 @@ function ChartCard({
         {title} <span className="muted">· actual {fmt(last, 2)} {unit}</span>
       </h2>
       <div style={{ width: "100%", height: 240 }}>
-        {data.length === 0 ? (
+        {sinDatos ? (
           <p className="muted">Sin datos en la ventana seleccionada.</p>
         ) : (
           <ResponsiveContainer>
@@ -254,7 +269,7 @@ function ChartCard({
                 minTickGap={40}
               />
               <YAxis
-                domain={["auto", "auto"]}
+                domain={domain}
                 stroke="var(--text-muted)"
                 tick={{ fontSize: 11 }}
                 tickLine={false}

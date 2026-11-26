@@ -34,6 +34,19 @@ async def health(request: Request):
     return {"status": "ok"}
 
 
+@app.get("/api/config/dispositivo")
+async def config_dispositivo():
+    """Datos para configurar un ESP32 desde su portal WiFi (página «Información»)."""
+    return {
+        "mqtt_host": settings.mqtt_public_host,
+        "mqtt_port": settings.mqtt_public_port,
+        "portal_ap_name": "Invernadero-Config",  # AP_NOMBRE en el firmware, igual en todas las placas
+        "portal_ap_password": settings.portal_ap_password,
+        "portal_ip": "192.168.4.1",
+        "default_device_prefix": "planta-",  # nombre por defecto: planta-<id único de la placa>
+    }
+
+
 @app.get("/api/stats")
 async def stats(request: Request):
     row = await pool(request).fetchrow(
