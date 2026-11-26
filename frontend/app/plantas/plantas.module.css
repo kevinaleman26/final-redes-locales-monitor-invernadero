@@ -1,0 +1,81 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tarjeta { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.tarjeta h2 { margin: 0 0 2px; }
+.mensaje { font-size: 15px; font-weight: 600; margin: 4px 0 10px; }
+.vacia .mensaje { color: var(--text-muted); }
+
+.sensores { width: 100%; display: grid; gap: 6px; text-align: left; }
+.sensor { display: flex; justify-content: space-between; gap: 8px; font-variant-numeric: tabular-nums; }
+.sensor .nombre { color: var(--text-secondary); display: inline-flex; align-items: center; gap: 6px; }
+.falla { color: var(--text-muted); }
+
+.chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; min-height: 22px; margin-bottom: 8px; }
+.chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-secondary); }
+.aviso { border-color: #d9a400; color: #8a6800; }
+
+.leyenda { display: grid; gap: 4px; }
+.toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+
+.svg { width: 100%; max-width: 220px; height: auto; overflow: visible; }
+
+/* ---------- Animaciones ---------- */
+.pose, .balanceo, .hojaIzq, .hojaDer { transform-box: view-box; transition: transform 0.6s ease; }
+.pose, .balanceo { transform-origin: 100px 142px; }
+.hojaIzq { transform-origin: 100px 122px; }
+.hojaDer { transform-origin: 100px 112px; }
+
+.balanceo { animation: balanceo 3.5s ease-in-out infinite; }
+.hojaIzq { animation: hojaIzq 3s ease-in-out infinite; }
+.hojaDer { animation: hojaDer 3s ease-in-out infinite 0.4s; }
+
+.ojo { transform-box: fill-box; transform-origin: center; animation: parpadeo 4s infinite; }
+
+@keyframes balanceo { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+@keyframes hojaIzq { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(6deg); } }
+@keyframes hojaDer { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-6deg); } }
+@keyframes parpadeo { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+
+/* Sed: la planta se marchita y saca la lengua */
+.sed .pose { transform: rotate(10deg) translateY(2px); }
+.sed .balanceo { animation-duration: 6s; }
+.sed .hojaIzq { animation: none; transform: rotate(-24deg); }
+.sed .hojaDer { animation: none; transform: rotate(24deg); }
+.lengua { transform-box: fill-box; transform-origin: top center; animation: lengua 1.2s ease-in-out infinite; }
+.burbuja { transform-box: fill-box; transform-origin: left bottom; animation: burbuja 2s ease-in-out infinite; }
+@keyframes lengua { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.35); } }
+@keyframes burbuja { 0%, 100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.08); opacity: 1; } }
+
+/* Calor: suda, jadea y se abanica con las hojas */
+.calor .hojaIzq { animation: abanicoIzq 0.45s ease-in-out infinite alternate; }
+.calor .hojaDer { animation: abanicoDer 0.45s ease-in-out infinite alternate 0.2s; }
+.jadeo { transform-box: fill-box; transform-origin: top center; animation: jadeo 0.5s ease-in-out infinite; }
+.sudor { animation: sudor 1.6s ease-in infinite; }
+.sudor2 { animation-delay: 0.8s; }
+.sol { transform-box: fill-box; transform-origin: center; animation: sol 8s linear infinite; }
+@keyframes abanicoIzq { from { transform: rotate(0deg); } to { transform: rotate(22deg); } }
+@keyframes abanicoDer { from { transform: rotate(0deg); } to { transform: rotate(-22deg); } }
+@keyframes jadeo { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.55); } }
+@keyframes sudor { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(16px); opacity: 0; } }
+@keyframes sol { to { transform: rotate(360deg); } }
+
+/* Sofocada: se infla, aprieta los ojos y la envuelve el vapor */
+.sofocada .balanceo { animation: agobio 1.4s ease-in-out infinite; }
+.vapor { animation: vapor 3s ease-in-out infinite; }
+.vapor2 { animation-delay: 1s; }
+.vapor3 { animation-delay: 2s; }
+@keyframes agobio { 0%, 100% { transform: rotate(-1.5deg) scale(1); } 50% { transform: rotate(1.5deg) scale(1.03); } }
+@keyframes vapor { 0% { transform: translateY(6px); opacity: 0; } 40% { opacity: 0.95; } 100% { transform: translateY(-14px); opacity: 0; } }
+
+/* Maceta vacía */
+.cartel { transform-box: view-box; transform-origin: 120px 144px; animation: cartel 3s ease-in-out infinite; }
+@keyframes cartel { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .svg *, .svg { animation: none !important; transition: none !important; }
+}

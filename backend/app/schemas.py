@@ -11,5 +11,6 @@ class SensorMessage(BaseModel):
     device_id: str = Field(min_length=1, max_length=64)
     temperature: float = Field(ge=-40, le=85)
     humidity: float = Field(ge=0, le=100)
+    soil_moisture: float | None = Field(default=None, ge=0, le=100)  # humedad de tierra (%), opcional
     measured_at: datetime | None = None
     received_at: datetime | None = None

@@ -57,6 +57,7 @@ async def devices(request: Request):
         SELECT id, first_seen, last_seen,
                last_temperature::float8 AS last_temperature,
                last_humidity::float8    AS last_humidity,
+               last_soil_moisture::float8 AS last_soil_moisture,
                readings_count,
                last_seen > now() - interval '30 seconds' AS online
         FROM devices
@@ -73,6 +74,7 @@ async def device(request: Request, device_id: str):
         SELECT id, first_seen, last_seen,
                last_temperature::float8 AS last_temperature,
                last_humidity::float8    AS last_humidity,
+               last_soil_moisture::float8 AS last_soil_moisture,
                readings_count,
                last_seen > now() - interval '30 seconds' AS online
         FROM devices WHERE id = $1
@@ -96,6 +98,7 @@ async def readings(
         SELECT id, message_id, device_id,
                temperature::float8 AS temperature,
                humidity::float8    AS humidity,
+               soil_moisture::float8 AS soil_moisture,
                measured_at, received_at, stored_at
         FROM readings
         WHERE ($1::text IS NULL OR device_id = $1)

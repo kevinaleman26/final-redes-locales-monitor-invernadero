@@ -23,7 +23,7 @@ Sistema dockerizado que recibe lecturas de dispositivos IoT (identificador, temp
 | `rabbitmq`             | RabbitMQ 3.13 + plugin MQTT      | Broker MQTT (puerto 1883) y cola `sensor.readings` con cola de errores `sensor.readings.dlq` |
 | `backend-worker`       | Proyecto uv (FastAPI) + asyncpg  | Consume la cola y guarda cada lectura en una transacción |
 | `backend-api`          | FastAPI + uvicorn (uv)           | API REST de consulta para el dashboard |
-| `frontend`             | Next.js 15 + Recharts            | Dashboard con KPIs, gráficas y tablas (se refresca cada 3 s) |
+| `frontend`             | Next.js 15 + Recharts            | Dashboard con KPIs, gráficas y tablas, y página de plantas animadas (se refresca cada 3 s) |
 | `postgres`             | PostgreSQL 16                    | Tablas `devices` y `readings` |
 | `pgadmin`              | pgAdmin 4                        | Gestor web de la base de datos (servidor ya preconfigurado) |
 
@@ -116,11 +116,21 @@ uv run test-comunication.py --device-id inv-01
 uv run test-comunication.py --device-id inv-02
 ```
 
+Para ver cada estado de la [página de plantas](#página-de-plantas), fija los valores iniciales:
+
+```bash
+uv run test-comunication.py --device-id planta-sed --soil 12          # tierra seca: sed
+uv run test-comunication.py --device-id planta-calor --temperature 34 # calor
+uv run test-comunication.py --device-id planta-sofocada --humidity 88 # humedad alta
+uv run test-comunication.py --device-id planta-sin-tierra --no-soil   # sin sensor de tierra
+```
+
 ## Accesos
 
 | Qué | URL | Credenciales (por defecto) |
 |-----|-----|----------------------------|
 | Dashboard | http://localhost:3100 | — |
+| Plantas animadas | http://localhost:3100/plantas | — |
 | API (Swagger) | http://localhost:8000/docs | — |
 | pgAdmin | http://localhost:5050 | Entra directo. Al abrir el servidor **Invernadero** pide la contraseña de Postgres: `invernadero` |
 | RabbitMQ (consola) | http://localhost:15672 | `invernadero` / `invernadero` |
@@ -154,6 +164,7 @@ Payload JSON (QoS 1 recomendado):
 | `message_id` | Sí | UUID generado por el dispositivo para cada lectura (evita duplicados en reintentos) |
 | `temperature` | Sí | °C, entre −40 y 85 |
 | `humidity` | Sí | %, entre 0 y 100 |
+| `soil_moisture` | No | Humedad de tierra (%), entre 0 y 100. Omítelo si el dispositivo no tiene sensor de tierra o no respondió |
 | `device_id` | No | Si falta, se toma del tópico |
 | `ts` | No | Hora de medición (ISO 8601). Si falta, se usa la hora de recepción en el backend |
 
@@ -199,14 +210,47 @@ void loop() {
 
 El frontend no llama al backend directamente desde el navegador: usa un proxy interno de Next.js (`/api/*` → `http://backend-api:8000/api/*`), así no hay problemas de CORS ni hace falta exponer la URL del backend.
 
+## Página de plantas
+
+En http://localhost:3100/plantas cada dispositivo aparece como **una planta en su maceta**, con una carita animada que reacciona a sus sensores (código en [frontend/app/plantas/](frontend/app/plantas/)):
+
+| Situación | Cómo se ve |
+|-----------|------------|
+| Todo en rango | Planta feliz, se balancea y parpadea |
+| Humedad de tierra < 30 % | **Sed**: se marchita, saca la lengua y sueña con una gota de agua |
+| Temperatura ≥ 30 °C | **Calor**: suda, jadea, se abanica con las hojas y aparece un sol |
+| Humedad del aire ≥ 80 % | **Sofocada**: ojos apretados, mejillas infladas y vapor alrededor |
+| Ningún sensor responde, o el dispositivo lleva más de 30 s sin reportar | Maceta vacía con un cartel «?» |
+| Solo responde uno de los dos sensores | La planta aparece, con un aviso del sensor que falla |
+
+El sensor de aire se considera caído cuando llega temperatura 0 y humedad 0 (es lo que envía el firmware si el DHT no responde), y el de tierra cuando falta `soil_moisture`. Los umbrales están al principio de [frontend/app/plantas/page.tsx](frontend/app/plantas/page.tsx). La casilla **Ver ejemplos** muestra todos los estados sin necesidad de sensores.
+
+## Firmware ESP32
+
+[firmware/esp32-invernadero/](firmware/esp32-invernadero/) es el firmware de un dispositivo real (Arduino, `PubSubClient` + `DHT sensor library` de Adafruit). Publica cada 10 s en `invernadero/<DEVICE_ID>/lecturas`:
+
+| Sensor | Conexión |
+|--------|----------|
+| DHT11 (temperatura y humedad del aire) | VCC → 3V3, GND → GND, DATA → GPIO 4 |
+| Humedad de tierra capacitivo (analógico) | VCC → 3V3, GND → GND, AOUT → GPIO 32 |
+
+Copia `secrets.example.h` como `secrets.h` (está en `.gitignore`) y pon tu WiFi de 2,4 GHz y la IP del servidor en la red local. Calibra el sensor de tierra con `TIERRA_SECO` y `TIERRA_MOJADO`, usando el valor crudo que muestra el monitor serie con el sensor al aire y en agua.
+
+```bash
+arduino-cli compile --fqbn esp32:esp32:esp32 -u -p /dev/cu.usbserial-0001 firmware/esp32-invernadero
+arduino-cli monitor -p /dev/cu.usbserial-0001 --config baudrate=115200
+```
+
 ## Base de datos
 
 El esquema se crea automáticamente desde [db/init.sql](db/init.sql) la **primera vez** que arranca Postgres:
 
-- **`devices`**: `id`, `first_seen`, `last_seen`, `last_temperature`, `last_humidity`, `readings_count`.
-- **`readings`**: `id`, `message_id` (único), `device_id` (FK), `temperature`, `humidity`, `measured_at` (hora del dispositivo), `received_at` (hora de recepción en el backend), `stored_at` (hora del commit).
+- **`devices`**: `id`, `first_seen`, `last_seen`, `last_temperature`, `last_humidity`, `last_soil_moisture`, `readings_count`.
+- **`readings`**: `id`, `message_id` (único), `device_id` (FK), `temperature`, `humidity`, `soil_moisture` (opcional), `measured_at` (hora del dispositivo), `received_at` (hora de recepción en el backend), `stored_at` (hora del commit).
 
 > Si modificas `init.sql`, debes borrar el volumen para que se vuelva a ejecutar: `docker compose down -v`.
+>
+> Las columnas de humedad de tierra las añade también el worker al arrancar (`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`), así que una base creada antes no necesita borrarse.
 
 ## Comandos útiles
 
@@ -255,9 +299,12 @@ docker compose down -v
 │       ├── schemas.py              # validación del mensaje
 │       ├── messaging.py            # declaración de colas
 │       └── config.py
+├── firmware/esp32-invernadero/     # firmware del ESP32 (DHT11 + humedad de tierra)
 ├── frontend/                       # Next.js (dashboard)
 │   └── app/
-│       ├── page.tsx
+│       ├── page.tsx                # dashboard
+│       ├── plantas/                # página de plantas animadas
+│       ├── Nav.tsx                 # navegación entre páginas
 │       └── api/[...path]/route.ts  # proxy hacia el backend
 └── docs/                           # documentación en PDF
 ```

@@ -77,3 +77,8 @@ td.num, th.num { text-align: right; }
 .swatch { display: inline-block; width: 10px; height: 2px; vertical-align: middle; margin-right: 6px; }
 
 .tooltip { background: var(--surface-1); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 12px; color: var(--text-primary); }
+
+.topnav { max-width: 1200px; margin: 0 auto; padding: 14px 16px 0; display: flex; gap: 4px; }
+.topnav a { color: var(--text-secondary); text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 13px; }
+.topnav a:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.topnav a.active { color: var(--text-primary); background: var(--surface-1); border: 1px solid var(--border); }
