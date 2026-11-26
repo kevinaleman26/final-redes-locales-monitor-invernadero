@@ -72,3 +72,6 @@ td.num, th.num { text-align: right; }
 .topnav a.active { color: #fff; background: var(--leaf); border: 1px solid var(--leaf-dark); }
 
 code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+
+/* El contenido va por encima del jardín de fondo (JardinFondo) */
+.topnav, main { position: relative; z-index: 1; }
