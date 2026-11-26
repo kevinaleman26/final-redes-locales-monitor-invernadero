@@ -34,6 +34,19 @@ async def health(request: Request):
     return {"status": "ok"}
 
 
+@app.get("/api/config/dispositivo")
+async def config_dispositivo():
+    """Datos para configurar un ESP32 desde su portal WiFi (página «Información»)."""
+    return {
+        "mqtt_host": settings.mqtt_public_host,
+        "mqtt_port": settings.mqtt_public_port,
+        "portal_ap_name": "Invernadero-Config",  # AP_NOMBRE en el firmware, igual en todas las placas
+        "portal_ap_password": settings.portal_ap_password,
+        "portal_ip": "192.168.4.1",
+        "default_device_prefix": "planta-",  # nombre por defecto: planta-<id único de la placa>
+    }
+
+
 @app.get("/api/stats")
 async def stats(request: Request):
     row = await pool(request).fetchrow(
@@ -57,6 +70,7 @@ async def devices(request: Request):
         SELECT id, first_seen, last_seen,
                last_temperature::float8 AS last_temperature,
                last_humidity::float8    AS last_humidity,
+               last_soil_moisture::float8 AS last_soil_moisture,
                readings_count,
                last_seen > now() - interval '30 seconds' AS online
         FROM devices
@@ -73,6 +87,7 @@ async def device(request: Request, device_id: str):
         SELECT id, first_seen, last_seen,
                last_temperature::float8 AS last_temperature,
                last_humidity::float8    AS last_humidity,
+               last_soil_moisture::float8 AS last_soil_moisture,
                readings_count,
                last_seen > now() - interval '30 seconds' AS online
         FROM devices WHERE id = $1
@@ -96,6 +111,7 @@ async def readings(
         SELECT id, message_id, device_id,
                temperature::float8 AS temperature,
                humidity::float8    AS humidity,
+               soil_moisture::float8 AS soil_moisture,
                measured_at, received_at, stored_at
         FROM readings
         WHERE ($1::text IS NULL OR device_id = $1)

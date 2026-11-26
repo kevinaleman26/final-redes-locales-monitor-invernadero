@@ -29,8 +29,8 @@ ON CONFLICT (id) DO NOTHING
 """
 
 INSERT_READING = """
-INSERT INTO readings (message_id, device_id, temperature, humidity, measured_at, received_at)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO readings (message_id, device_id, temperature, humidity, soil_moisture, measured_at, received_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT (message_id) DO NOTHING
 RETURNING id
 """
@@ -40,8 +40,18 @@ UPDATE devices
 SET last_seen        = GREATEST(last_seen, $2),
     last_temperature = $3,
     last_humidity    = $4,
+    last_soil_moisture = $5,
     readings_count   = readings_count + 1
 WHERE id = $1
+"""
+
+
+# Migración idempotente para bases creadas antes de añadir la humedad de tierra
+# (init.sql solo se ejecuta cuando el volumen de Postgres está vacío).
+MIGRATIONS = """
+ALTER TABLE devices  ADD COLUMN IF NOT EXISTS last_soil_moisture NUMERIC(5, 2);
+ALTER TABLE readings ADD COLUMN IF NOT EXISTS soil_moisture NUMERIC(5, 2)
+    CHECK (soil_moisture BETWEEN 0 AND 100);
 """
 
 
@@ -49,6 +59,7 @@ async def persist(pool: asyncpg.Pool, msg: SensorMessage) -> bool:
     """Guarda la lectura de forma atómica. Devuelve False si era un duplicado."""
     received_at = msg.received_at or datetime.now(timezone.utc)
     measured_at = msg.measured_at or received_at
+    soil = None if msg.soil_moisture is None else round(msg.soil_moisture, 2)
     async with pool.acquire() as conn:
         async with conn.transaction():
             await conn.execute(INSERT_DEVICE, msg.device_id, measured_at)
@@ -58,13 +69,14 @@ async def persist(pool: asyncpg.Pool, msg: SensorMessage) -> bool:
                 msg.device_id,
                 round(msg.temperature, 2),
                 round(msg.humidity, 2),
+                soil,
                 measured_at,
                 received_at,
             )
             if reading_id is None:
                 return False
             await conn.execute(
-                UPDATE_DEVICE, msg.device_id, measured_at, round(msg.temperature, 2), round(msg.humidity, 2)
+                UPDATE_DEVICE, msg.device_id, measured_at, round(msg.temperature, 2), round(msg.humidity, 2), soil
             )
             return True
 
@@ -106,7 +118,8 @@ async def handle(pool: asyncpg.Pool, message: aio_pika.abc.AbstractIncomingMessa
 
     await message.ack()
     if inserted:
-        log.info("OK %s T=%.2f H=%.2f", data.device_id, data.temperature, data.humidity)
+        soil = "—" if data.soil_moisture is None else f"{data.soil_moisture:.1f}"
+        log.info("OK %s T=%.2f H=%.2f S=%s", data.device_id, data.temperature, data.humidity, soil)
     else:
         log.info("Duplicado ignorado %s", data.message_id)
 
@@ -123,6 +136,8 @@ async def connect_with_retry(factory, what: str):
 
 async def main() -> None:
     pool = await connect_with_retry(lambda: asyncpg.create_pool(settings.database_url, min_size=1, max_size=10), "Postgres")
+    async with pool.acquire() as conn:
+        await conn.execute(MIGRATIONS)
     connection = await connect_with_retry(lambda: aio_pika.connect_robust(settings.rabbitmq_url), "RabbitMQ")
 
     async with connection:

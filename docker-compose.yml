@@ -4,6 +4,10 @@ x-python-env: &python-env
   DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
   RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
   QUEUE_NAME: ${QUEUE_NAME}
+  # Datos que la página «Información» muestra para configurar los ESP32
+  MQTT_PUBLIC_HOST: ${MQTT_PUBLIC_HOST:-}
+  MQTT_PUBLIC_PORT: ${MQTT_PORT:-1883}
+  PORTAL_AP_PASSWORD: ${PORTAL_AP_PASSWORD:-invernadero}
 
 services:
   # ------------------------------------------------------------------ datos

@@ -3,7 +3,7 @@
 # requires-python = ">=3.9"
 # dependencies = ["paho-mqtt>=2.0"]
 # ///
-"""Prueba de comunicación: emula un dispositivo IoT que publica temperatura y humedad por MQTT.
+"""Prueba de comunicación: emula un dispositivo IoT que publica temperatura, humedad y humedad de tierra por MQTT.
 
 Publica una lectura cada 10 segundos (configurable) en el broker MQTT de RabbitMQ,
 en el tópico  invernadero/<device_id>/lecturas  con QoS 1 (entrega confirmada).
@@ -12,6 +12,8 @@ Uso (uv instala paho-mqtt automáticamente):
     uv run test-comunication.py
     uv run test-comunication.py --device-id inv-02 --interval 5
     uv run test-comunication.py --host 192.168.1.50 --count 3
+    uv run test-comunication.py --device-id planta-sed --soil 15     # planta con sed
+    uv run test-comunication.py --device-id planta-calor --temperature 34
 
 Sin uv:
     pip install paho-mqtt && python3 test-comunication.py
@@ -41,6 +43,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--device-id", default="inv-01", help="Identificador del dispositivo (default: inv-01)")
     p.add_argument("--interval", type=float, default=10, help="Segundos entre envíos (default: 10)")
     p.add_argument("--count", type=int, default=0, help="Cantidad de envíos; 0 = infinito (default: 0)")
+    p.add_argument("--soil", type=float, default=None,
+                   help="Humedad de tierra inicial (%%). Si se omite, se simula entre 40 y 70")
+    p.add_argument("--no-soil", action="store_true", help="Simula un dispositivo sin sensor de tierra")
+    p.add_argument("--temperature", type=float, default=None, help="Temperatura inicial (°C)")
+    p.add_argument("--humidity", type=float, default=None, help="Humedad del aire inicial (%%)")
     p.add_argument("--qos", type=int, choices=[0, 1], default=1, help="QoS MQTT (default: 1)")
     return p.parse_args()
 
@@ -58,8 +65,9 @@ def main() -> None:
     client.loop_start()
 
     # Valores iniciales realistas para un invernadero; varían suavemente en cada envío.
-    temperature = random.uniform(20, 26)
-    humidity = random.uniform(55, 75)
+    temperature = args.temperature if args.temperature is not None else random.uniform(20, 26)
+    humidity = args.humidity if args.humidity is not None else random.uniform(55, 75)
+    soil = args.soil if args.soil is not None else random.uniform(40, 70)
 
     print(f"Publicando lecturas de '{args.device_id}' en mqtt://{args.host}:{args.port} "
           f"tópico '{topic}' cada {args.interval}s (Ctrl+C para detener)")
@@ -68,7 +76,8 @@ def main() -> None:
         while args.count == 0 or sent < args.count:
             temperature = min(40.0, max(10.0, temperature + random.uniform(-0.5, 0.5)))
             humidity = min(95.0, max(30.0, humidity + random.uniform(-1.5, 1.5)))
-            payload = json.dumps({
+            soil = min(100.0, max(0.0, soil + random.uniform(-1.0, 1.0)))
+            lectura = {
                 # El message_id lo genera el dispositivo: si MQTT reenvía el mensaje (QoS 1),
                 # el backend lo reconoce y no lo guarda dos veces.
                 "message_id": str(uuid.uuid4()),
@@ -76,7 +85,10 @@ def main() -> None:
                 "temperature": round(temperature, 2),
                 "humidity": round(humidity, 2),
                 "ts": datetime.now(timezone.utc).isoformat(),
-            })
+            }
+            if not args.no_soil:
+                lectura["soil_moisture"] = round(soil, 1)
+            payload = json.dumps(lectura)
 
             info = client.publish(topic, payload, qos=args.qos)
             info.wait_for_publish(timeout=10)

@@ -4,3 +4,7 @@ __pycache__/
 .venv/
 node_modules/
 .next/
+
+# Credenciales del firmware ESP32
+firmware/**/secrets.h
+*.tsbuildinfo
